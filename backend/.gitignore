@@ -1,0 +1,4 @@
+.env
+venv
+tests
+library_study_center.db

@@ -1,0 +1,7 @@
+docker-compose.yml
+Dockerfile.backend
+Dockerfile.frontend
+library_study_center.db
+test.db
+.env
+.pytest_cache/
