@@ -2,6 +2,7 @@ import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Printer, ShieldCheck, User } from 'lucide-react';
 import StatusBadge from '../common/StatusBadge';
+import { getFileUrl } from '../../api/client';
 
 const StudentIDCard = ({ student }) => {
   if (!student) return null;
@@ -44,7 +45,7 @@ const StudentIDCard = ({ student }) => {
             <div className="relative">
               {student.photo_url ? (
                 <img
-                  src={student.photo_url}
+                  src={getFileUrl(student.photo_url)}
                   alt={studentFullName}
                   className="w-28 h-32 rounded-xl object-cover border-2 border-brand-400/50 shadow-md"
                 />

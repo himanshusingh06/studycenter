@@ -3,7 +3,7 @@ import {
   Search, CreditCard, DollarSign, Calendar, User, CheckCircle2, 
   AlertTriangle, ShieldCheck, Printer, ArrowRight, Sparkles, RefreshCw, Zap
 } from 'lucide-react';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import StatusBadge from '../../components/common/StatusBadge';
 import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -187,7 +187,7 @@ const FeeCollectionTerminalPage = () => {
               <div className="flex items-center space-x-4">
                 <div className="w-16 h-20 rounded-xl overflow-hidden bg-slate-800 border-2 border-slate-700 shrink-0">
                   {feeProfile.photo_url ? (
-                    <img src={feeProfile.photo_url} alt="" className="w-full h-full object-cover" />
+                    <img src={getFileUrl(feeProfile.photo_url)} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-slate-500"><User className="h-8 w-8" /></div>
                   )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, UserPlus, Filter, Eye, BadgeCheck, Phone, Mail, Edit, Trash2 } from 'lucide-react';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import StatusBadge from '../../components/common/StatusBadge';
 import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -165,7 +165,7 @@ const StudentListPage = () => {
                       <div className="flex items-center space-x-3">
                         <div className="h-9 w-9 rounded-full bg-brand-600/30 text-brand-300 flex items-center justify-center font-bold text-xs border border-brand-500/20">
                           {stu.photo_url ? (
-                            <img src={stu.photo_url} alt="" className="w-full h-full object-cover rounded-full" />
+                            <img src={getFileUrl(stu.photo_url)} alt="" className="w-full h-full object-cover rounded-full" />
                           ) : (
                             stu.first_name[0]
                           )}

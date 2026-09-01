@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UploadCloud, Image as ImageIcon, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 
 const PhotoUploader = ({ value, onChange, label = "Student Photo" }) => {
   const [uploading, setUploading] = useState(false);
@@ -52,7 +52,7 @@ const PhotoUploader = ({ value, onChange, label = "Student Photo" }) => {
 
       {value ? (
         <div className="relative w-40 h-48 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 group">
-          <img src={value} alt="Student Preview" className="w-full h-full object-cover" />
+          <img src={getFileUrl(value)} alt="Student Preview" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
             <button
               type="button"

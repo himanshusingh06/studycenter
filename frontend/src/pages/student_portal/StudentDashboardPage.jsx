@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Clock, BadgeCheck, CreditCard, Calendar, User, Printer, FileText, CheckCircle, ShieldCheck, DollarSign } from 'lucide-react';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import StudentIDCard from '../../components/students/StudentIDCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import Modal from '../../components/common/Modal';
@@ -75,7 +75,7 @@ const StudentDashboardPage = () => {
         <div className="flex items-center space-x-4 text-center md:text-left">
           <div className="w-16 h-20 rounded-xl overflow-hidden bg-slate-800 border-2 border-brand-400/50 shrink-0">
             {profile?.photo_url ? (
-              <img src={profile.photo_url} alt="" className="w-full h-full object-cover" />
+              <img src={getFileUrl(profile.photo_url)} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-500"><User className="h-8 w-8" /></div>
             )}

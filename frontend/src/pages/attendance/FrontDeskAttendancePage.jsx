@@ -3,7 +3,7 @@ import {
   Search, LogIn, LogOut, Clock, Users, ShieldCheck, 
   CheckCircle, AlertCircle, QrCode, User, Sparkles
 } from 'lucide-react';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import StatusBadge from '../../components/common/StatusBadge';
 
 const FrontDeskAttendancePage = () => {
@@ -198,7 +198,7 @@ const FrontDeskAttendancePage = () => {
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                   <div className="w-20 h-24 rounded-xl bg-slate-900 border border-slate-800 overflow-hidden shrink-0">
                     {foundStudent.photo_url ? (
-                      <img src={foundStudent.photo_url} alt="" className="w-full h-full object-cover" />
+                      <img src={getFileUrl(foundStudent.photo_url)} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-600">
                         <User className="h-8 w-8" />

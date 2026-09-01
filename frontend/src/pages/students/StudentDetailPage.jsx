@@ -4,7 +4,7 @@ import {
   User, Phone, Mail, Calendar, MapPin, CreditCard, Clock, 
   BadgeCheck, FileText, ArrowLeft, Edit, UserX, ShieldCheck, DollarSign, Settings
 } from 'lucide-react';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import StatusBadge from '../../components/common/StatusBadge';
 import StudentIDCard from '../../components/students/StudentIDCard';
 import Modal from '../../components/common/Modal';
@@ -248,7 +248,7 @@ const StudentDetailPage = () => {
           <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl space-y-4 text-center md:text-left flex flex-col items-center md:items-start">
             <div className="w-32 h-36 rounded-2xl overflow-hidden bg-slate-800 border-2 border-slate-700 shadow-md">
               {student.photo_url ? (
-                <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
+                <img src={getFileUrl(student.photo_url)} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
                   <User className="h-12 w-12" />
