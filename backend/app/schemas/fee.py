@@ -144,3 +144,55 @@ class FeeAnalyticsResponse(BaseModel):
     payment_mode_distribution: List[Dict[str, Any]]
     monthly_collection_trend: List[Dict[str, Any]]
     recent_collections: List[Dict[str, Any]]
+
+class DuesListItem(BaseModel):
+    fee_month_id: int
+    student_id: int
+    student_code: str
+    student_name: str
+    photo_url: Optional[str] = None
+    mobile: str
+    seat_number: Optional[str] = None
+    preferred_timing: Optional[str] = None
+    plan_name: str
+    billing_cycle: str = "MONTHLY"
+    year: int
+    month: int
+    month_name: str
+    due_date: date
+    due_amount: float
+    paid_amount: float
+    pending_amount: float
+    discount_amount: float = 0.0
+    status: str  # OVERDUE, PENDING, PARTIALLY_PAID, PAID, WAIVED
+    days_overdue: int = 0
+    days_until_due: int = 0
+    paid_until_date: Optional[date] = None
+    notes: Optional[str] = None
+
+class DuesListSummary(BaseModel):
+    total_dues_count: int
+    total_pending_amount: float
+    total_overdue_amount: float
+    overdue_defaulters_count: int
+    pending_students_count: int
+    partially_paid_count: int
+    waived_count: int
+    paid_count: int
+    avg_days_overdue: float
+
+class DuesListResponse(BaseModel):
+    summary: DuesListSummary
+    items: List[DuesListItem]
+
+class SendReminderRequest(BaseModel):
+    student_id: int
+    fee_month_id: Optional[int] = None
+    reminder_type: str = "WHATSAPP"  # WHATSAPP, SMS, IN_APP
+    message: Optional[str] = None
+
+class BulkDuesActionRequest(BaseModel):
+    action: str  # BULK_REMINDER, BULK_WAIVE
+    fee_month_ids: List[int]
+    reason: Optional[str] = None
+

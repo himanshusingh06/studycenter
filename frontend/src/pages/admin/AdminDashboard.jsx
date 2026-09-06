@@ -61,6 +61,13 @@ const AdminDashboard = () => {
         </div>
         <div className="flex items-center space-x-3">
           <Link
+            to="/fees/dues"
+            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-amber-600/20 transition-all"
+          >
+            <AlertCircle className="h-4 w-4" />
+            <span>Dues List Hub</span>
+          </Link>
+          <Link
             to="/fees/collect"
             className="inline-flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/20 transition-all"
           >
@@ -164,26 +171,26 @@ const AdminDashboard = () => {
         </div>
 
         {/* Card 7: Pending Fees */}
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+        <Link to="/fees/dues?type=pending" className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-800/60 transition-all group">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-amber-500/10 text-amber-400 rounded-lg"><CreditCard className="h-4 w-4" /></div>
+            <div className="p-2 bg-amber-500/10 text-amber-400 rounded-lg group-hover:scale-105 transition-transform"><CreditCard className="h-4 w-4" /></div>
             <div>
-              <p className="text-xs text-slate-400">Pending Dues</p>
+              <p className="text-xs text-slate-400 group-hover:text-amber-300 transition-colors">Pending Dues →</p>
               <p className="text-xl font-bold text-amber-400 font-mono">₹{stats.pending_fees.toLocaleString()}</p>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Card 8: Overdue Defaulters */}
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-red-500/30">
+        <Link to="/fees/dues?type=overdue" className="p-4 rounded-xl bg-slate-900/60 border border-red-500/30 hover:border-red-500/60 hover:bg-red-500/10 transition-all group">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-red-500/10 text-red-400 rounded-lg"><AlertCircle className="h-4 w-4" /></div>
+            <div className="p-2 bg-red-500/10 text-red-400 rounded-lg group-hover:scale-105 transition-transform"><AlertCircle className="h-4 w-4" /></div>
             <div>
-              <p className="text-xs text-slate-400">Overdue Defaulters</p>
+              <p className="text-xs text-slate-400 group-hover:text-red-300 transition-colors">Overdue Defaulters →</p>
               <p className="text-xl font-bold text-red-400 font-mono">{stats.defaulters_count} Accounts</p>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Visual Analytics Charts Grid */}

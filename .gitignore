@@ -1,7 +1,32 @@
+# Environment and credentials
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local application data
+*.db
+backend/uploads/
+uploads/
 docker-compose.yml
 Dockerfile.backend
 Dockerfile.frontend
-library_study_center.db
-test.db
-.env
-.pytest_cache/
+
+# JavaScript dependencies and build output
+node_modules/
+frontend/dist/
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Archives
+*.zip

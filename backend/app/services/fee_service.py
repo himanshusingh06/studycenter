@@ -8,8 +8,10 @@ from app.models.payment import Payment, PaymentItem
 from app.schemas.fee import (
     FeeStructureCreate, FeeStructureUpdate, MonthlyFeeGridItem,
     FeeAnalyticsResponse, DefaulterItem, StudentFeeProfileResponse,
-    StudentFeeMappingUpdate, FeeMonthResponse
+    StudentFeeMappingUpdate, FeeMonthResponse, DuesListItem,
+    DuesListSummary, DuesListResponse
 )
+from app.models.notification import Notification
 from app.core.audit import log_audit
 
 MONTH_NAMES = [
@@ -422,3 +424,280 @@ def get_fee_analytics(db: Session, year: int, month: int) -> FeeAnalyticsRespons
         monthly_collection_trend=monthly_trend,
         recent_collections=recent_collections
     )
+
+
+def get_dues_list(
+    db: Session,
+    dues_type: Optional[str] = "ALL",
+    search_query: Optional[str] = None,
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    plan_id: Optional[int] = None,
+    min_days_overdue: Optional[int] = None,
+    sort_by: Optional[str] = "due_date_asc"
+) -> DuesListResponse:
+    today = date.today()
+
+    q = db.query(FeeMonth, Student, FeeStructure)\
+        .join(Student, FeeMonth.student_id == Student.id)\
+        .outerjoin(FeeStructure, Student.fee_structure_id == FeeStructure.id)\
+        .filter(Student.status == "ACTIVE")
+
+    if search_query:
+        sp = f"%{search_query}%"
+        q = q.filter(
+            or_(
+                Student.student_id.ilike(sp),
+                Student.first_name.ilike(sp),
+                Student.last_name.ilike(sp),
+                Student.mobile.ilike(sp),
+                Student.seat_number.ilike(sp)
+            )
+        )
+
+    if year:
+        q = q.filter(FeeMonth.year == year)
+
+    if month:
+        q = q.filter(FeeMonth.month == month)
+
+    if plan_id:
+        q = q.filter(Student.fee_structure_id == plan_id)
+
+    raw_results = q.all()
+    all_items: List[DuesListItem] = []
+
+    total_pending_amt = 0.0
+    total_overdue_amt = 0.0
+    overdue_student_ids = set()
+    pending_student_ids = set()
+    partially_paid_count = 0
+    waived_count = 0
+    paid_count = 0
+    overdue_days_list = []
+
+    for fm, student, fee_s in raw_results:
+        plan_name = fee_s.name if fee_s else "Custom Plan"
+        student_name = f"{student.first_name} {student.last_name}"
+
+        # Intelligent status sync
+        fm_start = date(fm.year, fm.month, 1)
+        if student.paid_until_date and student.paid_until_date >= fm_start and fm.status != "WAIVED":
+            if fm.status != "PAID" or fm.pending_amount > 0:
+                fm.status = "PAID"
+                fm.paid_amount = fm.due_amount
+                fm.pending_amount = 0.0
+                fm.paid_date = fm.paid_date or today
+                db.add(fm)
+        elif fm.status in ["PENDING", "PARTIALLY_PAID"] and fm.due_date < today and fm.pending_amount > 0:
+            if fm.status != "OVERDUE":
+                fm.status = "OVERDUE"
+                db.add(fm)
+
+        days_overdue = (today - fm.due_date).days if (today > fm.due_date and fm.pending_amount > 0 and fm.status != "WAIVED") else 0
+        days_until_due = (fm.due_date - today).days if (fm.due_date >= today and fm.pending_amount > 0) else 0
+
+        # Global statistics accounting
+        if fm.pending_amount > 0 and fm.status != "WAIVED":
+            total_pending_amt += fm.pending_amount
+            pending_student_ids.add(student.id)
+
+        if (fm.status == "OVERDUE" or days_overdue > 0) and fm.pending_amount > 0 and fm.status != "WAIVED":
+            total_overdue_amt += fm.pending_amount
+            overdue_student_ids.add(student.id)
+            if days_overdue > 0:
+                overdue_days_list.append(days_overdue)
+
+        if fm.status == "PARTIALLY_PAID":
+            partially_paid_count += 1
+        elif fm.status == "WAIVED":
+            waived_count += 1
+        elif fm.status == "PAID" or fm.pending_amount == 0:
+            paid_count += 1
+
+        # Dues type filtering
+        dt_upper = (dues_type or "ALL").upper()
+        if dt_upper == "OVERDUE":
+            if fm.status != "OVERDUE" and days_overdue <= 0:
+                continue
+            if fm.pending_amount <= 0 or fm.status == "WAIVED":
+                continue
+        elif dt_upper == "PENDING":
+            if fm.pending_amount <= 0 or fm.status == "WAIVED":
+                continue
+        elif dt_upper == "PARTIALLY_PAID":
+            if fm.status != "PARTIALLY_PAID" and not (fm.paid_amount > 0 and fm.pending_amount > 0):
+                continue
+        elif dt_upper == "PAID":
+            if fm.status != "PAID" and fm.pending_amount > 0:
+                continue
+        elif dt_upper == "WAIVED":
+            if fm.status != "WAIVED":
+                continue
+
+        if min_days_overdue is not None and min_days_overdue > 0:
+            if days_overdue < min_days_overdue:
+                continue
+
+        all_items.append(
+            DuesListItem(
+                fee_month_id=fm.id,
+                student_id=student.id,
+                student_code=student.student_id,
+                student_name=student_name,
+                photo_url=student.photo_url,
+                mobile=student.mobile,
+                seat_number=student.seat_number,
+                preferred_timing=student.preferred_timing,
+                plan_name=plan_name,
+                billing_cycle=student.billing_cycle or "MONTHLY",
+                year=fm.year,
+                month=fm.month,
+                month_name=MONTH_NAMES[fm.month],
+                due_date=fm.due_date,
+                due_amount=fm.due_amount,
+                paid_amount=fm.paid_amount,
+                pending_amount=fm.pending_amount,
+                discount_amount=fm.discount_amount,
+                status=fm.status,
+                days_overdue=days_overdue,
+                days_until_due=days_until_due,
+                paid_until_date=student.paid_until_date,
+                notes=fm.notes
+            )
+        )
+
+    db.commit()
+
+    # Sorting
+    if sort_by == "due_date_asc":
+        all_items.sort(key=lambda x: x.due_date)
+    elif sort_by == "due_date_desc":
+        all_items.sort(key=lambda x: x.due_date, reverse=True)
+    elif sort_by == "amount_desc":
+        all_items.sort(key=lambda x: x.pending_amount, reverse=True)
+    elif sort_by == "overdue_days_desc":
+        all_items.sort(key=lambda x: x.days_overdue, reverse=True)
+    elif sort_by == "student_name":
+        all_items.sort(key=lambda x: x.student_name)
+
+    avg_days_overdue = round(sum(overdue_days_list) / len(overdue_days_list), 1) if overdue_days_list else 0.0
+
+    summary = DuesListSummary(
+        total_dues_count=len(raw_results),
+        total_pending_amount=round(total_pending_amt, 2),
+        total_overdue_amount=round(total_overdue_amt, 2),
+        overdue_defaulters_count=len(overdue_student_ids),
+        pending_students_count=len(pending_student_ids),
+        partially_paid_count=partially_paid_count,
+        waived_count=waived_count,
+        paid_count=paid_count,
+        avg_days_overdue=avg_days_overdue
+    )
+
+    return DuesListResponse(summary=summary, items=all_items)
+
+
+def send_due_reminder(db: Session, student_id: int, fee_month_id: Optional[int] = None, reminder_type: str = "WHATSAPP", staff_user_id: Optional[int] = None) -> Dict[str, Any]:
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise ValueError(f"Student #{student_id} not found")
+
+    fee_month = None
+    if fee_month_id:
+        fee_month = db.query(FeeMonth).filter(FeeMonth.id == fee_month_id).first()
+
+    due_amt = fee_month.pending_amount if fee_month else sum(fm.pending_amount for fm in student.fee_months if fm.pending_amount > 0)
+    month_str = f"{MONTH_NAMES[fee_month.month]} {fee_month.year}" if fee_month else "Pending Dues"
+
+    msg = f"Dear {student.first_name}, this is a reminder from Buddha Library. Your fee payment of ₹{due_amt:.2f} for {month_str} is due. Please pay at the front desk or via UPI to avoid interruption."
+
+    if student.user_id:
+        notif = Notification(
+            user_id=student.user_id,
+            title=f"Fee Payment Reminder - {month_str}",
+            message=msg,
+            type="URGENT" if (fee_month and fee_month.status == "OVERDUE") else "INFO"
+        )
+        db.add(notif)
+
+    log_audit(
+        db=db,
+        user_id=staff_user_id,
+        action="SEND_FEE_REMINDER",
+        entity="STUDENT",
+        entity_id=str(student_id),
+        new_value={"reminder_type": reminder_type, "fee_month_id": fee_month_id, "amount": due_amt}
+    )
+
+    db.commit()
+
+    encoded_text = msg.replace(' ', '%20')
+    whatsapp_url = f"https://wa.me/91{student.mobile}?text={encoded_text}" if student.mobile else None
+
+    return {
+        "success": True,
+        "message": f"Payment reminder logged for {student.first_name} {student.last_name}",
+        "whatsapp_url": whatsapp_url,
+        "reminder_payload": {
+            "student_name": f"{student.first_name} {student.last_name}",
+            "mobile": student.mobile,
+            "due_amount": due_amt,
+            "month": month_str,
+            "notice_text": msg
+        }
+    }
+
+
+def process_bulk_dues_action(db: Session, action: str, fee_month_ids: List[int], reason: Optional[str] = None, staff_user_id: Optional[int] = None) -> Dict[str, Any]:
+    if not fee_month_ids:
+        return {"success": False, "message": "No dues selected"}
+
+    fee_months = db.query(FeeMonth).filter(FeeMonth.id.in_(fee_month_ids)).all()
+    count = len(fee_months)
+
+    if action == "BULK_WAIVE":
+        for fm in fee_months:
+            fm.status = "WAIVED"
+            fm.pending_amount = 0.0
+            fm.notes = f"Waived off: {reason or 'Staff discretion'}"
+            db.add(fm)
+
+        log_audit(
+            db=db,
+            user_id=staff_user_id,
+            action="BULK_WAIVE_FEES",
+            entity="FEE_MONTH",
+            entity_id=str(count),
+            new_value={"waived_count": count, "reason": reason}
+        )
+        db.commit()
+        return {"success": True, "message": f"Successfully waived {count} fee dues records."}
+
+    elif action == "BULK_REMINDER":
+        sent_count = 0
+        for fm in fee_months:
+            st = fm.student
+            if st and st.user_id:
+                notif = Notification(
+                    user_id=st.user_id,
+                    title=f"Urgent Fee Reminder - {MONTH_NAMES[fm.month]} {fm.year}",
+                    message=f"Dear {st.first_name}, your fee payment of ₹{fm.pending_amount} is pending. Please clear your dues immediately.",
+                    type="URGENT"
+                )
+                db.add(notif)
+                sent_count += 1
+
+        log_audit(
+            db=db,
+            user_id=staff_user_id,
+            action="BULK_SEND_REMINDERS",
+            entity="FEE_MONTH",
+            entity_id=str(count),
+            new_value={"selected_count": count, "notifications_sent": sent_count}
+        )
+        db.commit()
+        return {"success": True, "message": f"Sent {sent_count} fee reminder notices to student accounts."}
+
+    return {"success": False, "message": f"Unknown bulk action '{action}'"}
+

@@ -12,6 +12,7 @@ import StudentDetailPage from '../pages/students/StudentDetailPage';
 import FeeCollectionTerminalPage from '../pages/fees/FeeCollectionTerminalPage';
 import FeeAnalyticsPage from '../pages/fees/FeeAnalyticsPage';
 import MonthlyFeeGridPage from '../pages/fees/MonthlyFeeGridPage';
+import DuesListPage from '../pages/fees/DuesListPage';
 import FeeStructuresPage from '../pages/fees/FeeStructuresPage';
 import PaymentsHistoryPage from '../pages/payments/PaymentsHistoryPage';
 import FrontDeskAttendancePage from '../pages/attendance/FrontDeskAttendancePage';
@@ -33,6 +34,7 @@ const AppRoutes = () => {
           <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="/attendance/desk" element={<FrontDeskAttendancePage />} />
           <Route path="/fees/collect" element={<FeeCollectionTerminalPage />} />
+          <Route path="/fees/dues" element={<DuesListPage />} />
           <Route path="/fees/analytics" element={<FeeAnalyticsPage />} />
           <Route path="/fees/monthly" element={<MonthlyFeeGridPage />} />
           <Route path="/students" element={<StudentListPage />} />

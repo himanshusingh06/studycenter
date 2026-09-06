@@ -12,7 +12,8 @@ from app.models.fee import FeeStructure, FeeMonth
 from app.schemas.fee import (
     FeeStructureCreate, FeeStructureUpdate, FeeStructureResponse, 
     MonthlyFeeGridItem, FeeAnalyticsResponse, DefaulterItem,
-    StudentFeeProfileResponse, StudentFeeMappingUpdate
+    StudentFeeProfileResponse, StudentFeeMappingUpdate,
+    DuesListResponse, SendReminderRequest, BulkDuesActionRequest
 )
 from app.services import fee_service
 
@@ -214,3 +215,58 @@ def get_my_fee_dues(
             "paid_date": str(fm.paid_date) if fm.paid_date else None
         })
     return res
+
+@router.get("/dues-list", response_model=DuesListResponse)
+def get_dues_list(
+    dues_type: Optional[str] = Query(default="ALL"),
+    q: Optional[str] = Query(default=None),
+    year: Optional[int] = Query(default=None),
+    month: Optional[int] = Query(default=None, ge=1, le=12),
+    plan_id: Optional[int] = Query(default=None),
+    min_days: Optional[int] = Query(default=None, ge=0),
+    sort_by: Optional[str] = Query(default="due_date_asc"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["ADMIN", "LIBRARY_STAFF"]))
+):
+    return fee_service.get_dues_list(
+        db=db,
+        dues_type=dues_type,
+        search_query=q,
+        year=year,
+        month=month,
+        plan_id=plan_id,
+        min_days_overdue=min_days,
+        sort_by=sort_by
+    )
+
+@router.post("/dues/send-reminder")
+def send_due_reminder(
+    req: SendReminderRequest,
+    db: Session = Depends(get_db),
+    staff_user: User = Depends(require_roles(["ADMIN", "LIBRARY_STAFF"]))
+):
+    try:
+        return fee_service.send_due_reminder(
+            db=db,
+            student_id=req.student_id,
+            fee_month_id=req.fee_month_id,
+            reminder_type=req.reminder_type,
+            staff_user_id=staff_user.id
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/dues/bulk-action")
+def process_bulk_dues_action(
+    req: BulkDuesActionRequest,
+    db: Session = Depends(get_db),
+    staff_user: User = Depends(require_roles(["ADMIN", "LIBRARY_STAFF"]))
+):
+    return fee_service.process_bulk_dues_action(
+        db=db,
+        action=req.action,
+        fee_month_ids=req.fee_month_ids,
+        reason=req.reason,
+        staff_user_id=staff_user.id
+    )
+

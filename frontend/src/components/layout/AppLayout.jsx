@@ -20,6 +20,7 @@ const AppLayout = () => {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Front Desk Attendance', path: '/attendance/desk', icon: Clock, highlight: true },
     { name: 'Fast Fee Terminal', path: '/fees/collect', icon: Zap, highlight: true },
+    { name: 'Dues & Overdues List', path: '/fees/dues', icon: ShieldAlert, highlight: true },
     { name: 'Fee Analytics & Defaulters', path: '/fees/analytics', icon: TrendingUp },
     { name: 'Monthly Fee Ledger', path: '/fees/monthly', icon: CreditCard },
     { name: 'Students Directory', path: '/students', icon: Users },
