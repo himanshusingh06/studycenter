@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
-    DATABASE_URL: str = "sqlite:///./library_study_center.db"
+    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/study_center_db"
     UPLOAD_DIR: str = os.path.join(root_dir, "uploads")
     
     CORS_ORIGINS: Union[List[str], str] = [
